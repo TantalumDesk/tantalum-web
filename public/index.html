@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tantalum</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #0e0e0e; color: #f0ede8; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-family: Georgia, serif; font-size: 32px; color: #c9a84c; margin-bottom: 8px; }
+    p { color: #6a6660; font-size: 15px; margin-bottom: 24px; }
+    .badge { display: inline-block; background: rgba(94,196,126,0.15); color: #5ec47e; border: 1px solid rgba(94,196,126,0.3); border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 500; }
+    button { margin-top: 24px; display: block; background: none; border: 1px solid #2e2e2e; color: #9a9690; border-radius: 8px; padding: 10px 20px; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    button:hover { border-color: #c9a84c; color: #c9a84c; }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="icon">&#8986;</div>
+    <h1>Tantalum</h1>
+    <p>Server is running successfully.</p>
+    <div class="badge">&#10003; Connected</div>
+    <button onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/login')">Sign Out</button>
+  </div>
+</body>
+</html>
