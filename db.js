@@ -13,24 +13,31 @@ const db = knex({
   client: 'pg',
   connection: {
     connectionString: process.env.DATABASE_URL,
-    // Internal railway URLs don't use SSL, external ones do
     ssl: isInternal ? false : { rejectUnauthorized: false }
   },
   pool: { min: 0, max: 5 }
 });
 
+async function createIfMissing(tableName, builder) {
+  const exists = await db.schema.hasTable(tableName);
+  if (!exists) {
+    await db.schema.createTable(tableName, builder);
+    console.log('Created table:', tableName);
+  }
+}
+
 async function init() {
   await db.raw('SELECT 1');
   console.log('Database connected');
 
-  await db.schema.createTableIfNotExists('users', t => {
+  await createIfMissing('users', t => {
     t.increments('id');
     t.string('username').unique().notNullable();
     t.string('password_hash').notNullable();
     t.timestamp('created_at').defaultTo(db.fn.now());
   });
 
-  await db.schema.createTableIfNotExists('settings', t => {
+  await createIfMissing('settings', t => {
     t.increments('id');
     t.integer('user_id').notNullable();
     t.string('key').notNullable();
@@ -39,7 +46,7 @@ async function init() {
   });
 
   for (const tbl of ['watches','accessories','estimates','customers','jobs','notebook_items','want_list','purchases','outgoing_invoices','expenses','appraisals','dealers']) {
-    await db.schema.createTableIfNotExists(tbl, t => {
+    await createIfMissing(tbl, t => {
       t.string('id').primary();
       t.integer('user_id').notNullable();
       t.text('data').defaultTo('{}');
@@ -47,7 +54,7 @@ async function init() {
     });
   }
 
-  await db.schema.createTableIfNotExists('invoice_counter', t => {
+  await createIfMissing('invoice_counter', t => {
     t.integer('user_id').primary();
     t.integer('next_number').defaultTo(1101);
   });
