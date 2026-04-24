@@ -2,26 +2,311 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>Tantalum</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, sans-serif; background: #0e0e0e; color: #f0ede8; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-    .icon { font-size: 48px; margin-bottom: 16px; }
-    h1 { font-family: Georgia, serif; font-size: 32px; color: #c9a84c; margin-bottom: 8px; }
-    p { color: #6a6660; font-size: 15px; margin-bottom: 24px; }
-    .badge { display: inline-block; background: rgba(94,196,126,0.15); color: #5ec47e; border: 1px solid rgba(94,196,126,0.3); border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 500; }
-    button { margin-top: 24px; display: block; background: none; border: 1px solid #2e2e2e; color: #9a9690; border-radius: 8px; padding: 10px 20px; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
-    button:hover { border-color: #c9a84c; color: #c9a84c; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
-  <div>
-    <div class="icon">&#8986;</div>
-    <h1>Tantalum</h1>
-    <p>Server is running successfully.</p>
-    <div class="badge">&#10003; Connected</div>
-    <button onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/login')">Sign Out</button>
+<div id="app">
+
+  <!-- SIDEBAR (desktop) -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-icon">⌚</span>
+      <span class="sidebar-logo-text">Tantalum</span>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-section">Inventory</div>
+      <div class="nav-item" data-view="inventory"><span class="nav-icon">⌚</span>Watches</div>
+      <div class="nav-item" data-view="accessories"><span class="nav-icon">📿</span>Accessories</div>
+      <div class="nav-section">Service</div>
+      <div class="nav-item" data-view="estimates"><span class="nav-icon">📋</span>Estimates & Jobs</div>
+      <div class="nav-item" data-view="customers"><span class="nav-icon">👤</span>Customers</div>
+      <div class="nav-section">Business</div>
+      <div class="nav-item" data-view="purchases"><span class="nav-icon">💰</span>Purchase Log</div>
+      <div class="nav-item" data-view="invoices"><span class="nav-icon">🧾</span>Invoices</div>
+      <div class="nav-item" data-view="expenses"><span class="nav-icon">💳</span>Expenses</div>
+      <div class="nav-item" data-view="notebook"><span class="nav-icon">📓</span>Notebook</div>
+      <div class="nav-section">Admin</div>
+      <div class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span>Settings</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-user"></div>
+      <button class="sidebar-signout" onclick="signOut()">⬅ Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- Mobile header -->
+    <div id="mobile-header">
+      <span class="mobile-logo-text">Tantalum</span>
+      <div id="mobile-header-actions"></div>
+    </div>
+
+    <!-- Desktop header -->
+    <div id="header">
+      <div id="header-title">Dashboard</div>
+      <div id="header-actions"></div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <div class="stats-grid" id="dash-stats"></div>
+        <div class="section-header"><span class="section-title">⚠️ Alerts</span></div>
+        <div class="card" style="padding:0;margin-bottom:20px" id="dash-alerts">
+          <div class="empty-state" style="padding:24px"><div class="empty-state-icon">✓</div><div class="empty-state-text">No alerts</div></div>
+        </div>
+        <div class="section-header"><span class="section-title">📋 Pending Estimates</span></div>
+        <div class="card" style="padding:0;margin-bottom:20px" id="dash-estimates"></div>
+        <div class="section-header"><span class="section-title">🔍 Open Leads</span></div>
+        <div class="card" style="padding:0" id="dash-leads"></div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="view" id="view-inventory">
+        <div class="form-row" style="display:flex;gap:10px;margin-bottom:16px">
+          <div class="search-bar" style="flex:1"><input class="field" id="inv-search" placeholder="Search brand, model, ref…"/></div>
+          <select class="field" id="inv-filter" style="width:auto;min-width:120px">
+            <option value="">All Status</option>
+            <option>In Stock</option><option>Listed</option><option>Sold</option><option>Consignment</option>
+          </select>
+        </div>
+        <div class="watch-grid" id="inv-grid"></div>
+      </div>
+
+      <!-- ESTIMATES -->
+      <div class="view" id="view-estimates">
+        <div class="form-row" style="display:flex;gap:10px;margin-bottom:16px">
+          <div class="search-bar" style="flex:1"><input class="field" id="est-search" placeholder="Search customer, watch…"/></div>
+          <select class="field" id="est-filter" style="width:auto;min-width:130px">
+            <option value="">All Status</option>
+            <option>Pending Approval</option><option>Approved</option>
+            <option>In Progress</option><option>Ready for Pickup</option><option>Completed</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0" id="est-list"></div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="view" id="view-customers">
+        <div class="form-row search-bar" style="margin-bottom:16px">
+          <input class="field" id="cust-search" placeholder="Search customers…"/>
+        </div>
+        <div class="card" style="padding:0" id="cust-list"></div>
+      </div>
+
+      <!-- NOTEBOOK -->
+      <div class="view" id="view-notebook">
+        <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px">
+          <button class="btn btn-primary btn-sm" onclick="switchNotebookTab('notes')" id="nb-tab-notes">Notes</button>
+          <button class="btn btn-secondary btn-sm" onclick="switchNotebookTab('leads')" id="nb-tab-leads">Leads</button>
+          <button class="btn btn-secondary btn-sm" onclick="switchNotebookTab('tasks')" id="nb-tab-tasks">Tasks</button>
+          <button class="btn btn-secondary btn-sm" onclick="switchNotebookTab('wantList')" id="nb-tab-wantList">Want List</button>
+        </div>
+        <div id="nb-content"></div>
+      </div>
+
+      <!-- PURCHASES -->
+      <div class="view" id="view-purchases">
+        <div class="card" style="padding:0" id="purchases-list"></div>
+      </div>
+
+      <!-- INVOICES -->
+      <div class="view" id="view-invoices">
+        <div class="card" style="padding:0" id="invoices-list"></div>
+      </div>
+
+      <!-- EXPENSES -->
+      <div class="view" id="view-expenses">
+        <div class="card" style="padding:0" id="expenses-list"></div>
+      </div>
+
+      <!-- ACCESSORIES -->
+      <div class="view" id="view-accessories">
+        <div class="card" style="padding:0" id="accessories-list"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="view" id="view-settings">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-label">Store Info</div>
+          <div class="form-row"><label class="field-label">Store Name</label><input class="field" id="s-store-name" type="text"/></div>
+          <div class="form-row two-col">
+            <div><label class="field-label">Phone</label><input class="field" id="s-store-phone" type="text"/></div>
+            <div><label class="field-label">Email</label><input class="field" id="s-store-email" type="email"/></div>
+          </div>
+          <div class="form-row"><label class="field-label">Address</label><input class="field" id="s-store-address" type="text"/></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-label">Estimates</div>
+          <div class="form-row" style="display:flex;align-items:center;gap:12px">
+            <label class="field-label" style="margin:0;white-space:nowrap">Tax Rate (%)</label>
+            <input class="field" id="s-tax-rate" type="number" step="0.1" style="width:90px"/>
+          </div>
+          <div class="form-row" style="display:flex;align-items:center;gap:12px">
+            <label class="field-label" style="margin:0;white-space:nowrap">Estimates expire after</label>
+            <input class="field" id="s-expiry-days" type="number" min="7" max="365" style="width:80px"/>
+            <span style="font-size:13px;color:var(--text2)">days</span>
+          </div>
+          <hr class="divider"/>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Expiry alerts on Dashboard</div></div>
+            <label class="toggle"><input type="checkbox" id="s-expiry-alerts"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Follow-up reminders</div></div>
+            <label class="toggle"><input type="checkbox" id="s-followup"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Birthday reminders</div></div>
+            <label class="toggle"><input type="checkbox" id="s-birthday"/><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">Save Settings</button>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav id="bottom-nav">
+    <div class="bnav-item active" data-view="dashboard"><span class="bnav-icon">📊</span>Dash</div>
+    <div class="bnav-item" data-view="inventory"><span class="bnav-icon">⌚</span>Watches</div>
+    <div class="bnav-item" data-view="estimates"><span class="bnav-icon">📋</span>Jobs</div>
+    <div class="bnav-item" data-view="customers"><span class="bnav-icon">👤</span>Clients</div>
+    <div class="bnav-item" data-view="notebook"><span class="bnav-icon">📓</span>More</div>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- WATCH DETAIL MODAL -->
+<div class="modal-overlay" id="watch-modal-overlay">
+  <div class="modal" id="watch-modal">
+    <div class="modal-header">
+      <span class="modal-title" id="watch-modal-title">Watch Details</span>
+      <button class="modal-close" onclick="closeModal('watch-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body" id="watch-modal-body"></div>
   </div>
+</div>
+
+<!-- ADD/EDIT WATCH MODAL -->
+<div class="modal-overlay" id="edit-watch-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="edit-watch-title">Add Watch</span>
+      <button class="modal-close" onclick="closeModal('edit-watch-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row two-col">
+        <div><label class="field-label">Brand</label><input class="field" id="ew-brand" list="brand-list"/><datalist id="brand-list"></datalist></div>
+        <div><label class="field-label">Model</label><input class="field" id="ew-model" list="model-list"/><datalist id="model-list"></datalist></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Reference #</label><input class="field" id="ew-ref" type="text"/></div>
+        <div><label class="field-label">Serial #</label><input class="field" id="ew-serial" type="text"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Condition</label><select class="field" id="ew-condition"><option>Mint</option><option>Excellent</option><option>Very Good</option><option>Good</option><option>Fair</option><option>Parts/Repair</option></select></div>
+        <div><label class="field-label">Status</label><select class="field" id="ew-status"><option>In Stock</option><option>Listed</option><option>Sold</option></select></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Dial Color</label><input class="field" id="ew-dial" type="text" placeholder="e.g. Black"/></div>
+        <div><label class="field-label">Bracelet</label><input class="field" id="ew-bracelet" type="text" placeholder="e.g. Oyster"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Cost</label><input class="field" id="ew-cost" type="number" step="0.01"/></div>
+        <div><label class="field-label">Retail Price</label><input class="field" id="ew-price" type="number" step="0.01"/></div>
+      </div>
+      <div class="form-row">
+        <label class="field-label">Notes</label>
+        <textarea class="field" id="ew-notes" rows="2"></textarea>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Source</label><input class="field" id="ew-source" type="text" placeholder="e.g. Private Sale"/></div>
+        <div><label class="field-label">Purchase Date</label><input class="field" id="ew-date" type="text" placeholder="e.g. April 2026"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('edit-watch-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWatch()">Save Watch</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ESTIMATE MODAL -->
+<div class="modal-overlay" id="est-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="est-modal-title">New Estimate</span>
+      <button class="modal-close" onclick="closeModal('est-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row two-col">
+        <div><label class="field-label">Customer Name</label><input class="field" id="em-cust-name" type="text"/></div>
+        <div><label class="field-label">Phone</label><input class="field" id="em-cust-phone" type="tel"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Email</label><input class="field" id="em-cust-email" type="email"/></div>
+      <hr class="divider"/>
+      <div class="form-row two-col">
+        <div><label class="field-label">Brand</label><input class="field" id="em-brand" type="text"/></div>
+        <div><label class="field-label">Model</label><input class="field" id="em-model" type="text"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Serial #</label><input class="field" id="em-serial" type="text"/></div>
+      <hr class="divider"/>
+      <div class="section-header" style="margin-bottom:10px"><span class="section-title">Services</span><button class="btn btn-sm btn-secondary" onclick="addEstimateLine()">+ Add</button></div>
+      <div id="em-lines"></div>
+      <div class="form-row" style="margin-top:12px"><label class="field-label">Notes</label><textarea class="field" id="em-notes" rows="2"></textarea></div>
+      <div style="text-align:right;margin-top:8px;font-size:14px;color:var(--gold2);font-weight:600" id="em-total-display">Total: $0.00</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('est-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEstimate()">Save Estimate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CUSTOMER MODAL -->
+<div class="modal-overlay" id="cust-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="cust-modal-title">New Customer</span>
+      <button class="modal-close" onclick="closeModal('cust-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="field-label">Name</label><input class="field" id="cm-name" type="text"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Phone</label><input class="field" id="cm-phone" type="tel"/></div>
+        <div><label class="field-label">Email</label><input class="field" id="cm-email" type="email"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Address</label><input class="field" id="cm-address" type="text"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Birthday</label><input class="field" id="cm-birthday" type="text" placeholder="e.g. June 15"/></div>
+        <div><label class="field-label">Follow-up Date</label><input class="field" id="cm-followup" type="text" placeholder="e.g. May 1, 2026"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Notes</label><textarea class="field" id="cm-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('cust-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
 </body>
 </html>
