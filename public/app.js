@@ -19,10 +19,37 @@ const GET  = path => api('GET', path);
 const POST = (path, body) => api('POST', path, body);
 const DEL  = path => api('DELETE', path);
 
+
+// ── Theme ─────────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const isDark = theme === 'dark';
+  const icons = document.querySelectorAll('#theme-toggle-btn, #mobile-theme-btn');
+  icons.forEach(el => { if (el) el.textContent = isDark ? '🌙' : '☀️'; });
+  const toggle = document.getElementById('s-light-mode');
+  if (toggle) toggle.checked = !isDark;
+  localStorage.setItem('tantalum-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+  POST('/settings', { theme: document.documentElement.getAttribute('data-theme') });
+}
+
+function applyThemeFromToggle() {
+  const light = document.getElementById('s-light-mode')?.checked;
+  applyTheme(light ? 'light' : 'dark');
+  POST('/settings', { theme: light ? 'light' : 'dark' });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   const me = await GET('/me');
   if (!me) return;
+  // Apply saved theme
+  const savedTheme = settings.theme || localStorage.getItem('tantalum-theme') || 'dark';
+  applyTheme(savedTheme);
   document.getElementById('sidebar-user').textContent = me.username;
 
   await Promise.all([

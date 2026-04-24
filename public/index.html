@@ -8,6 +8,7 @@
   <title>Tantalum</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,700;1,300&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
@@ -15,9 +16,27 @@
 
   <!-- SIDEBAR (desktop) -->
   <nav id="sidebar">
-    <div class="sidebar-logo">
-      <span class="sidebar-logo-icon">⌚</span>
-      <span class="sidebar-logo-text">Tantalum</span>
+    <div class="sidebar-logo" style="padding:14px 16px">
+      <svg viewBox="-80 -80 160 160" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+        <polygon points="0,-70 60.6,-35 60.6,35 0,70 -60.6,35 -60.6,-35" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+        <polygon points="0,-78 66,-39 66,39 0,78 -66,39 -66,-39" fill="none" stroke="#c9a84c" stroke-width="0.4" opacity="0.25"/>
+        <polygon points="0,-58 50.2,-29 50.2,29 0,58 -50.2,29 -50.2,-29" fill="none" stroke="#c9a84c" stroke-width="0.4" opacity="0.4"/>
+        <line x1="0" y1="-78" x2="0" y2="-70" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <line x1="67.6" y1="-39" x2="60.6" y2="-35" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <line x1="67.6" y1="39" x2="60.6" y2="35" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <line x1="0" y1="78" x2="0" y2="70" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <line x1="-67.6" y1="39" x2="-60.6" y2="35" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <line x1="-67.6" y1="-39" x2="-60.6" y2="-35" stroke="#c9a84c" stroke-width="1" opacity="0.55"/>
+        <polygon points="0,-70 4.5,-65 0,-60 -4.5,-65" fill="#c9a84c" opacity="0.9"/>
+        <polygon points="60.6,-35 65.1,-30 60.6,-25 56.1,-30" fill="#c9a84c" opacity="0.9"/>
+        <polygon points="60.6,35 65.1,30 60.6,25 56.1,30" fill="#c9a84c" opacity="0.9"/>
+        <polygon points="0,70 4.5,65 0,60 -4.5,65" fill="#c9a84c" opacity="0.9"/>
+        <polygon points="-60.6,35 -56.1,30 -60.6,25 -65.1,30" fill="#c9a84c" opacity="0.9"/>
+        <polygon points="-60.6,-35 -56.1,-30 -60.6,-25 -65.1,-30" fill="#c9a84c" opacity="0.9"/>
+        <text x="2" y="10" text-anchor="middle" font-family="'Cormorant Garamond',Georgia,serif" font-size="52" font-weight="300" font-style="italic" fill="#c9a84c">Ta</text>
+        <line x1="-22" y1="20" x2="22" y2="20" stroke="#c9a84c" stroke-width="0.6" opacity="0.5"/>
+        <text x="1" y="32" text-anchor="middle" font-family="'Cormorant Garamond',Georgia,serif" font-size="9.5" font-weight="700" fill="#c9a84c" letter-spacing="5" opacity="0.85">TANTALUM</text>
+      </svg>
     </div>
     <div class="sidebar-nav">
       <div class="nav-section">Main</div>
@@ -47,13 +66,25 @@
 
     <!-- Mobile header -->
     <div id="mobile-header">
+      <svg viewBox="-80 -80 160 160" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="0,-70 60.6,-35 60.6,35 0,70 -60.6,35 -60.6,-35" fill="none" stroke="#c9a84c" stroke-width="2"/>
+        <polygon points="0,-70 4.5,-65 0,-60 -4.5,-65" fill="#c9a84c"/>
+        <polygon points="60.6,-35 65.1,-30 60.6,-25 56.1,-30" fill="#c9a84c"/>
+        <polygon points="60.6,35 65.1,30 60.6,25 56.1,30" fill="#c9a84c"/>
+        <polygon points="0,70 4.5,65 0,60 -4.5,65" fill="#c9a84c"/>
+        <polygon points="-60.6,35 -56.1,30 -60.6,25 -65.1,30" fill="#c9a84c"/>
+        <polygon points="-60.6,-35 -56.1,-30 -60.6,-25 -65.1,-30" fill="#c9a84c"/>
+        <text x="2" y="14" text-anchor="middle" font-family="'Cormorant Garamond',Georgia,serif" font-size="52" font-weight="300" font-style="italic" fill="#c9a84c">Ta</text>
+      </svg>
       <span class="mobile-logo-text">Tantalum</span>
+      <button class="theme-toggle" id="mobile-theme-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
       <div id="mobile-header-actions"></div>
     </div>
 
     <!-- Desktop header -->
     <div id="header">
       <div id="header-title">Dashboard</div>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
       <div id="header-actions"></div>
     </div>
 
@@ -139,6 +170,13 @@
 
       <!-- SETTINGS -->
       <div class="view" id="view-settings">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-label">Appearance</div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Light Mode</div><div class="toggle-sub">Switch between dark and light theme</div></div>
+            <label class="toggle"><input type="checkbox" id="s-light-mode" onchange="applyThemeFromToggle()"/><span class="toggle-slider"></span></label>
+          </div>
+        </div>
         <div class="card" style="margin-bottom:14px">
           <div class="card-label">Store Info</div>
           <div class="form-row"><label class="field-label">Store Name</label><input class="field" id="s-store-name" type="text"/></div>
