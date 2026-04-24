@@ -13,8 +13,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// File uploads
-const UPLOADS_DIR = path.join('/tmp', 'tantalum-uploads');
+// File uploads to /tmp (works on Railway)
+const UPLOADS_DIR = '/tmp/tantalum-uploads';
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -26,32 +26,24 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
-// Sessions using PostgreSQL store
-const pgSession = require('connect-pg-simple')(session);
+// Simple memory session store (works without extra packages)
 app.use(session({
-  store: new pgSession({
-    conString: process.env.DATABASE_URL,
-    tableName: 'user_sessions',
-    createTableIfMissing: true,
-    ssl: { rejectUnauthorized: false }
-  }),
   secret: process.env.SESSION_SECRET || 'tantalum-dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     maxAge: 30 * 24 * 60 * 60 * 1000
   }
 }));
 
-// Auth middleware
+// Auth
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) return next();
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Not authenticated' });
   res.redirect('/login');
 }
 
-// Auth routes
 app.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -67,7 +59,10 @@ app.post('/api/login', async (req, res) => {
     req.session.userId = user.id;
     req.session.username = user.username;
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Login error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.post('/api/logout', (req, res) => {
@@ -79,12 +74,17 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ id: req.session.userId, username: req.session.username });
 });
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '1.0.0' }));
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.raw('SELECT 1');
+    res.json({ status: 'ok', db: 'connected' });
+  } catch(e) {
+    res.status(500).json({ status: 'error', db: e.message });
+  }
+});
 
-// Protect everything below
 app.use(requireAuth);
 
-// Routes
 app.use('/api/settings',    require('./routes/settings'));
 app.use('/api/watches',     require('./routes/watches'));
 app.use('/api/accessories', require('./routes/accessories'));
@@ -95,12 +95,10 @@ app.use('/api/notebook',    require('./routes/notebook'));
 app.use('/api/invoices',    require('./routes/invoices'));
 app.use('/api/uploads',     require('./routes/uploads')(upload, UPLOADS_DIR));
 
-// Serve app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start
 const ADMIN_USER = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'tantalum2024';
 
