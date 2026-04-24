@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { db, init, ensureAdminUser } = require('./db');
+const { ensureDemoUser } = require('./seed-demo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,6 +105,7 @@ const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'tantalum2024';
 
 init()
   .then(() => ensureAdminUser(ADMIN_USER, ADMIN_PASS))
+  .then(() => ensureDemoUser())
   .then(() => {
     app.listen(PORT, () => console.log(`Tantalum running on port ${PORT}`));
   })
