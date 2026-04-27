@@ -483,13 +483,25 @@ function addEstimateLine() {
   renderEstLines();
 }
 
+function addServiceChip(name, price) {
+  estLines.push({ name, price });
+  renderEstLines();
+}
+
 function renderEstLines() {
   const el = document.getElementById('em-lines');
+  // Service chips from settings
+  const chips = (settings.services || []);
+  const chipsHtml = chips.length ? `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${chips.map(s => `<button class="btn btn-ghost btn-sm" onclick="addServiceChip('${escHtml(s.name||s)}',${s.price||0})" style="font-size:12px">${escHtml(s.name||s)} — $${s.price||0}</button>`).join('')}
+    </div>` : '';
   if (!estLines.length) {
-    el.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px">No services added yet</div>';
+    el.innerHTML = chipsHtml + '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px">No services added yet</div>';
     updateEstTotal();
     return;
   }
+  el.innerHTML = chipsHtml;
   el.innerHTML = estLines.map((l, i) => `
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
       <input class="field" style="flex:1" placeholder="Service description" value="${escHtml(l.name)}" oninput="estLines[${i}].name=this.value"/>
@@ -878,6 +890,60 @@ function populateSettingsForm() {
   if (f('s-birthday'))     f('s-birthday').checked   = s.birthdayRemindersEnabled!==false;
   if (f('s-smtp-email'))   f('s-smtp-email').value   = s.smtpEmail||'';
   if (f('s-smtp-name'))    f('s-smtp-name').value    = s.smtpName||'';
+  // Render all lists
+  renderSettingsList('services', 's-services-list', true);
+  renderSettingsList('brands', 's-brands-list');
+  renderSettingsList('dialColors', 's-dialColors-list');
+  renderSettingsList('braceletTypes', 's-braceletTypes-list');
+  renderSettingsList('statuses', 's-statuses-list');
+}
+
+function renderSettingsList(key, elId, isServices) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const items = settings[key] || [];
+  if (!items.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">None added yet</div>';
+    return;
+  }
+  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">${items.map((item, i) => {
+    const label = isServices ? `${item.name||item} — $${item.price||0}` : (item.name||item);
+    return `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg4);border:1px solid var(--border2);padding:4px 10px;border-radius:20px;font-size:12px">
+      ${escHtml(label)}
+      <button onclick="removeListItem('${key}',${i},'${elId}',${isServices})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0 0 0 4px">×</button>
+    </span>`;
+  }).join('')}</div>`;
+}
+
+function addListItem(key, inputId, elId) {
+  const input = document.getElementById(inputId);
+  if (!input?.value?.trim()) return;
+  if (!settings[key]) settings[key] = [];
+  settings[key].push(input.value.trim());
+  input.value = '';
+  POST('/settings', { [key]: settings[key] });
+  populateDataLists();
+  renderSettingsList(key, elId);
+}
+
+function removeListItem(key, index, elId, isServices) {
+  if (!settings[key]) return;
+  settings[key].splice(index, 1);
+  POST('/settings', { [key]: settings[key] });
+  populateDataLists();
+  renderSettingsList(key, elId, isServices);
+}
+
+function addServicePreset() {
+  const name = document.getElementById('s-new-service-name')?.value?.trim();
+  const price = parseFloat(document.getElementById('s-new-service-price')?.value)||0;
+  if (!name) return;
+  if (!settings.services) settings.services = [];
+  settings.services.push({ name, price });
+  document.getElementById('s-new-service-name').value = '';
+  document.getElementById('s-new-service-price').value = '';
+  POST('/settings', { services: settings.services });
+  renderSettingsList('services', 's-services-list', true);
 }
 
 function populateDataLists() {

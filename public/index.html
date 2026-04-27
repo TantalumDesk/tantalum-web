@@ -253,6 +253,60 @@
           <div class="form-row"><label class="field-label">From Name</label><input class="field" id="s-smtp-name" type="text" placeholder="e.g. Sandler's Jewelry"/></div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">Save Settings</button>
+
+        <!-- Service Presets -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-label">Service Presets</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:10px">These appear as quick-add chips when writing estimates.</p>
+          <div id="s-services-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field" id="s-new-service-name" placeholder="Service name" style="flex:1"/>
+            <input class="field" id="s-new-service-price" type="number" placeholder="Price" style="width:90px"/>
+            <button class="btn btn-secondary btn-sm" onclick="addServicePreset()">Add</button>
+          </div>
+        </div>
+
+        <!-- Brands -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-label">Brands</div>
+          <div id="s-brands-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field" id="s-new-brand" placeholder="e.g. Grand Seiko" style="flex:1"/>
+            <button class="btn btn-secondary btn-sm" onclick="addListItem('brands','s-new-brand','s-brands-list')">Add</button>
+          </div>
+        </div>
+
+        <!-- Dial Colors -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-label">Dial Colors</div>
+          <div id="s-dialColors-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field" id="s-new-dialColor" placeholder="e.g. Meteorite" style="flex:1"/>
+            <button class="btn btn-secondary btn-sm" onclick="addListItem('dialColors','s-new-dialColor','s-dialColors-list')">Add</button>
+          </div>
+        </div>
+
+        <!-- Bracelet Types -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-label">Bracelet / Strap Types</div>
+          <div id="s-braceletTypes-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field" id="s-new-braceletType" placeholder="e.g. Tropic" style="flex:1"/>
+            <button class="btn btn-secondary btn-sm" onclick="addListItem('braceletTypes','s-new-braceletType','s-braceletTypes-list')">Add</button>
+          </div>
+        </div>
+
+        <!-- Watch Statuses -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-label">Watch Statuses</div>
+          <div id="s-statuses-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <input class="field" id="s-new-status" placeholder="e.g. On Hold" style="flex:1"/>
+            <button class="btn btn-secondary btn-sm" onclick="addListItem('statuses','s-new-status','s-statuses-list')">Add</button>
+          </div>
+        </div>
+
+        <!-- Data -->
         <div class="card" style="margin-top:14px">
           <div class="card-label">Data</div>
           <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Import your existing data from the Tantalum desktop app.</p>
