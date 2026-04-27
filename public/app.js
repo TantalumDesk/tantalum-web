@@ -124,6 +124,8 @@ function updateHeaderActions(view) {
   if (view === 'inventory') html = `<button class="btn btn-primary btn-sm" onclick="openAddWatch()">+ Add Watch</button>`;
   if (view === 'estimates') html = `<button class="btn btn-primary btn-sm" onclick="openAddEstimate()">+ New Estimate</button>`;
   if (view === 'customers') html = `<button class="btn btn-primary btn-sm" onclick="openAddCustomer()">+ Add Customer</button>`;
+  if (view === 'expenses')  html = `<button class="btn btn-primary btn-sm" onclick="openAddExpense()">+ Add Expense</button>`;
+  if (view === 'purchases') html = `<button class="btn btn-primary btn-sm" onclick="openAddPurchase()">+ Add Purchase</button>`;
   acts.innerHTML = html;
   mActs.innerHTML = html;
 }
@@ -222,9 +224,17 @@ function renderInventory(filter) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">⌚</div><div class="empty-state-text">No watches found</div><button class="btn btn-primary" onclick="openAddWatch()">+ Add Watch</button></div>`;
     return;
   }
-  grid.innerHTML = list.map(w => `
+  grid.innerHTML = list.map(w => {
+    const photos = w.photos || {};
+    const photoKeys = Object.keys(photos);
+    const mainPhoto = photoKeys.length > 0 ? photos[photoKeys[0]] : null;
+    return `
     <div class="watch-card" onclick="openWatchDetail('${w.id}')">
-      <div class="watch-card-img">⌚</div>
+      <div class="watch-card-img" style="background:var(--bg3)">
+        ${mainPhoto
+          ? `<img src="/api/uploads/${mainPhoto}" style="width:100%;height:100%;object-fit:cover"/>`
+          : `<span style="font-size:40px;color:var(--text3)">⌚</span>`}
+      </div>
       <div class="watch-card-body">
         <div class="watch-card-brand">${escHtml(w.brand||'—')}</div>
         <div class="watch-card-model">${escHtml(w.model||'—')}</div>
@@ -234,28 +244,86 @@ function renderInventory(filter) {
           <div class="watch-card-stock">${escHtml(w.stockNum||'')}</div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function openWatchDetail(id) {
   const w = watches.find(x => x.id === id);
   if (!w) return;
+  const photos = w.photos || {};
+  const photoKeys = Object.keys(photos);
+  const mainPhoto = photoKeys.length > 0 ? photos[photoKeys[0]] : null;
+
   document.getElementById('watch-modal-title').textContent = `${w.brand||''} ${w.model||''}`.trim();
   document.getElementById('watch-modal-body').innerHTML = `
+    <!-- Photo section -->
+    <div style="margin-bottom:16px">
+      <div id="watch-photo-display" style="width:100%;height:220px;background:var(--bg3);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;position:relative">
+        ${mainPhoto ? `<img src="/api/uploads/${mainPhoto}" style="width:100%;height:100%;object-fit:cover"/>` : `<div style="text-align:center;color:var(--text3)"><div style="font-size:40px">⌚</div><div style="font-size:12px;margin-top:6px">No photo</div></div>`}
+      </div>
+      ${photoKeys.length > 1 ? `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">${photoKeys.map(k => `<img src="/api/uploads/${photos[k]}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent" onclick="document.querySelector('#watch-photo-display img, #watch-photo-display div').remove(); document.getElementById('watch-photo-display').innerHTML='<img src=\'/api/uploads/${photos[k]}\' style=\'width:100%;height:100%;object-fit:cover\'/>'"/>`).join('')}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+          📷 Add Photo
+          <input type="file" accept="image/*" style="display:none" onchange="uploadWatchPhoto('${w.id}', this)"/>
+        </label>
+        ${photoKeys.length > 0 ? `<button class="btn btn-ghost btn-sm" onclick="deleteWatchPhoto('${w.id}', '${photoKeys[0]}')">Remove Photo</button>` : ''}
+      </div>
+    </div>
+    <!-- Details grid -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       ${detailRow('Brand', w.brand)} ${detailRow('Model', w.model)}
       ${detailRow('Ref #', w.ref)} ${detailRow('Serial', w.serial)}
       ${detailRow('Condition', w.condition)} ${detailRow('Status', w.status)}
       ${detailRow('Dial Color', w.dialColor)} ${detailRow('Bracelet', w.bracelet)}
-      ${detailRow('Cost', fmt(w.cost))} ${detailRow('Retail', fmt(w.retailPrice))}
-      ${detailRow('Stock #', w.stockNum)} ${detailRow('Source', w.sourceName)}
+      ${detailRow('Accessories', w.accessories)} ${detailRow('Source', w.sourceName)}
+      ${detailRow('Purchase Date', w.purchaseDate)} ${detailRow('Stock #', w.stockNum)}
+      ${detailRow('Cost', fmt(w.cost))} ${detailRow('Retail Price', fmt(w.retailPrice))}
+      ${w.wholesalePrice ? detailRow('Wholesale', fmt(w.wholesalePrice)) : ''}
+      ${w.soldPrice ? detailRow('Sold Price', fmt(w.soldPrice)) : ''}
     </div>
-    ${w.notes ? `<div class="card-label">Notes</div><p style="font-size:13.5px;color:var(--text2);margin-bottom:16px">${escHtml(w.notes)}</p>` : ''}
+    ${w.notes ? `<div class="card-label" style="margin-bottom:6px">Notes</div><p style="font-size:13.5px;color:var(--text2);margin-bottom:16px;line-height:1.5">${escHtml(w.notes)}</p>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary btn-sm" onclick="openEditWatch('${w.id}')">✏️ Edit</button>
       <button class="btn btn-danger btn-sm" onclick="deleteWatch('${w.id}')">🗑 Delete</button>
     </div>`;
   openModal('watch-modal-overlay');
+}
+
+async function uploadWatchPhoto(watchId, input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  showToast('Uploading photo…');
+  try {
+    const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.fileName) {
+      const w = watches.find(x => x.id === watchId);
+      if (!w) return;
+      if (!w.photos) w.photos = {};
+      const key = 'photo_' + Date.now();
+      w.photos[key] = data.fileName;
+      await POST('/watches', w);
+      await loadWatches();
+      openWatchDetail(watchId);
+      showToast('Photo uploaded');
+    }
+  } catch(e) { showToast('Upload failed'); }
+}
+
+async function deleteWatchPhoto(watchId, photoKey) {
+  const w = watches.find(x => x.id === watchId);
+  if (!w || !w.photos) return;
+  const fileName = w.photos[photoKey];
+  if (fileName) await DEL('/uploads/' + fileName);
+  delete w.photos[photoKey];
+  await POST('/watches', w);
+  await loadWatches();
+  openWatchDetail(watchId);
+  showToast('Photo removed');
 }
 
 function openAddWatch()     { editingWatchId = null; clearWatchForm(); document.getElementById('edit-watch-title').textContent = 'Add Watch'; openModal('edit-watch-overlay'); }
@@ -400,13 +468,16 @@ function renderCustomers() {
 
   const el = document.getElementById('cust-list');
   el.innerHTML = list.map(c => `
-    <div class="list-item">
+    <div class="list-item" onclick="openCustomerDetail('${c.id}')">
       <div class="list-item-icon">👤</div>
       <div class="list-item-body">
         <div class="list-item-title">${escHtml(c.name||'')}</div>
         <div class="list-item-sub">${escHtml(c.phone||'')}${c.email?' · '+escHtml(c.email):''}</div>
       </div>
-      ${c.birthday ? `<div class="list-item-right"><div class="list-item-tag">🎂 ${escHtml(c.birthday)}</div></div>` : ''}
+      <div class="list-item-right">
+        ${c.birthday ? `<div class="list-item-tag">🎂 ${escHtml(c.birthday)}</div>` : ''}
+        ${c.followupDate ? `<div class="list-item-tag" style="color:var(--blue)">📞 ${escHtml(c.followupDate)}</div>` : ''}
+      </div>
     </div>`).join('') || '<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">No customers yet</div><button class="btn btn-primary" onclick="openAddCustomer()">+ Add Customer</button></div>';
 }
 
@@ -414,6 +485,53 @@ function openAddCustomer() {
   editingCustId = null;
   ['cm-name','cm-phone','cm-email','cm-address','cm-birthday','cm-followup','cm-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   openModal('cust-modal-overlay');
+}
+
+function openCustomerDetail(id) {
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('watch-modal-title').textContent = c.name||'Customer';
+  document.getElementById('watch-modal-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      ${detailRow('Phone', c.phone)} ${detailRow('Email', c.email)}
+      ${detailRow('Address', c.address)} ${detailRow('Birthday', c.birthday)}
+      ${detailRow('Anniversary', c.anniversary)} ${detailRow('Follow-up', c.followupDate)}
+    </div>
+    ${c.followupNote ? `<div class="card-label" style="margin-bottom:4px">Follow-up Note</div><p style="font-size:13.5px;color:var(--text2);margin-bottom:12px">${escHtml(c.followupNote)}</p>` : ''}
+    ${c.notes ? `<div class="card-label" style="margin-bottom:4px">Notes</div><p style="font-size:13.5px;color:var(--text2);margin-bottom:16px;line-height:1.5">${escHtml(c.notes)}</p>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="openEditCustomer('${c.id}')">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">🗑 Delete</button>
+      ${c.phone ? `<a href="tel:${escHtml(c.phone)}" class="btn btn-ghost btn-sm">📞 Call</a>` : ''}
+      ${c.email ? `<a href="mailto:${escHtml(c.email)}" class="btn btn-ghost btn-sm">✉️ Email</a>` : ''}
+    </div>`;
+  openModal('watch-modal-overlay');
+}
+
+function openEditCustomer(id) {
+  editingCustId = id;
+  const c = customers.find(x => x.id === id);
+  if (!c) return;
+  closeModal('watch-modal-overlay');
+  document.getElementById('cust-modal-title').textContent = 'Edit Customer';
+  const f = n => document.getElementById(n);
+  f('cm-name').value = c.name||'';
+  f('cm-phone').value = c.phone||'';
+  f('cm-email').value = c.email||'';
+  f('cm-address').value = c.address||'';
+  f('cm-birthday').value = c.birthday||'';
+  f('cm-followup').value = c.followupDate||'';
+  f('cm-notes').value = c.notes||'';
+  openModal('cust-modal-overlay');
+}
+
+async function deleteCustomer(id) {
+  if (!confirm('Delete this customer?')) return;
+  await DEL('/customers/' + id);
+  await loadCustomers();
+  closeModal('watch-modal-overlay');
+  renderCustomers();
+  showToast('Customer deleted');
 }
 
 async function saveCustomer() {
@@ -487,17 +605,58 @@ function addNote() {
 // ── Purchases ─────────────────────────────────────────────────────────────
 function renderPurchases() {
   const el = document.getElementById('purchases-list');
-  el.innerHTML = purchases.map(p => `
+  const total = purchases.reduce((s, p) => s + (p.amount||0), 0);
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">Total: <strong style="color:var(--gold2)">${fmt(total)}</strong></span>
+      <button class="btn btn-primary btn-sm" onclick="openAddPurchase()">+ Add Purchase</button>
+    </div>` +
+    (purchases.length ? purchases.map(p => `
     <div class="list-item">
       <div class="list-item-body">
         <div class="list-item-title">${escHtml(p.watchDesc||'')}</div>
-        <div class="list-item-sub">${escHtml(p.dealerName||'')} · ${escHtml(p.date||'')}</div>
+        <div class="list-item-sub">${escHtml(p.dealerName||'')} · ${escHtml(p.date||'')} · ${escHtml(p.paymentMethod||'')}</div>
       </div>
       <div class="list-item-right">
         <div class="list-item-value">${fmt(p.amount)}</div>
-        <div class="list-item-tag">${escHtml(p.paymentMethod||'')}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="deletePurchase('${p.id}',event)">🗑</button>
       </div>
-    </div>`).join('') || '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No purchases yet</div></div>';
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No purchases yet</div></div>');
+}
+
+function openAddPurchase() {
+  ['pur-desc','pur-dealer','pur-amount','pur-date','pur-payment','pur-notes'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  const d = document.getElementById('pur-date');
+  if (d) d.value = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  openModal('purchase-modal-overlay');
+}
+
+async function savePurchase() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const p = {
+    id: genId(),
+    watchDesc: g('pur-desc'), dealerName: g('pur-dealer'),
+    amount: parseFloat(g('pur-amount'))||0, date: g('pur-date'),
+    paymentMethod: g('pur-payment'), notes: g('pur-notes'),
+    type: 'manual', status: 'complete',
+    createdAt: new Date().toISOString(),
+  };
+  await POST('/invoices/purchases', p);
+  await loadInvoiceData();
+  closeModal('purchase-modal-overlay');
+  renderPurchases();
+  showToast('Purchase saved');
+}
+
+async function deletePurchase(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this purchase?')) return;
+  await DEL('/invoices/purchases/' + id);
+  await loadInvoiceData();
+  renderPurchases();
+  showToast('Purchase deleted');
 }
 
 function renderInvoiceList() {
@@ -518,8 +677,12 @@ function renderInvoiceList() {
 function renderExpenses() {
   const el = document.getElementById('expenses-list');
   const total = expenses.reduce((s, e) => s + (e.amount||0), 0);
-  el.innerHTML = `<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)">Total: <strong style="color:var(--gold2)">${fmt(total)}</strong></div>` +
-    expenses.map(e => `
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">Total: <strong style="color:var(--gold2)">${fmt(total)}</strong></span>
+      <button class="btn btn-primary btn-sm" onclick="openAddExpense()">+ Add Expense</button>
+    </div>` +
+    (expenses.length ? expenses.map(e => `
     <div class="list-item">
       <div class="list-item-body">
         <div class="list-item-title">${escHtml(e.description||'')}</div>
@@ -527,8 +690,43 @@ function renderExpenses() {
       </div>
       <div class="list-item-right">
         <div class="list-item-value">${fmt(e.amount)}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="deleteExpense('${e.id}',event)">🗑</button>
       </div>
-    </div>`).join('') || '<div class="empty-state"><div class="empty-state-icon">💳</div><div class="empty-state-text">No expenses yet</div></div>';
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">💳</div><div class="empty-state-text">No expenses yet</div></div>');
+}
+
+function openAddExpense() {
+  ['exp-description','exp-vendor','exp-amount','exp-date','exp-category','exp-payment'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  const d = document.getElementById('exp-date');
+  if (d) d.value = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  openModal('expense-modal-overlay');
+}
+
+async function saveExpense() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const exp = {
+    id: genId(),
+    description: g('exp-description'), vendor: g('exp-vendor'),
+    amount: parseFloat(g('exp-amount'))||0, date: g('exp-date'),
+    category: g('exp-category'), payment: g('exp-payment'),
+    createdAt: new Date().toISOString(),
+  };
+  await POST('/invoices/expenses', exp);
+  await loadInvoiceData();
+  closeModal('expense-modal-overlay');
+  renderExpenses();
+  showToast('Expense saved');
+}
+
+async function deleteExpense(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this expense?')) return;
+  await DEL('/invoices/expenses/' + id);
+  await loadInvoiceData();
+  renderExpenses();
+  showToast('Expense deleted');
 }
 
 function renderAccessories() {

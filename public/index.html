@@ -345,6 +345,83 @@
   </div>
 </div>
 
+<!-- EXPENSE MODAL -->
+<div class="modal-overlay" id="expense-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Expense</span>
+      <button class="modal-close" onclick="closeModal('expense-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="field-label">Description</label><input class="field" id="exp-description" type="text" placeholder="e.g. Watch cleaning supplies"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Vendor</label><input class="field" id="exp-vendor" type="text" placeholder="e.g. Cousins UK"/></div>
+        <div><label class="field-label">Amount</label><input class="field" id="exp-amount" type="number" step="0.01" placeholder="0.00"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Date</label><input class="field" id="exp-date" type="text"/></div>
+        <div><label class="field-label">Category</label>
+          <select class="field" id="exp-category">
+            <option value="supplies">Supplies</option>
+            <option value="shipping">Shipping</option>
+            <option value="fees">Fees</option>
+            <option value="tools">Tools & Equipment</option>
+            <option value="marketing">Marketing</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label class="field-label">Payment Method</label>
+        <select class="field" id="exp-payment">
+          <option value="card">Credit Card</option>
+          <option value="cash">Cash</option>
+          <option value="check">Check</option>
+          <option value="wire">Wire Transfer</option>
+          <option value="paypal">PayPal</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('expense-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE MODAL -->
+<div class="modal-overlay" id="purchase-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Purchase</span>
+      <button class="modal-close" onclick="closeModal('purchase-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="field-label">Watch Description</label><input class="field" id="pur-desc" type="text" placeholder="e.g. Rolex Submariner 116610LN — TW2001"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Dealer / Source</label><input class="field" id="pur-dealer" type="text" placeholder="e.g. Private Sale"/></div>
+        <div><label class="field-label">Amount Paid</label><input class="field" id="pur-amount" type="number" step="0.01" placeholder="0.00"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Date</label><input class="field" id="pur-date" type="text"/></div>
+        <div><label class="field-label">Payment Method</label>
+          <select class="field" id="pur-payment">
+            <option value="wire">Wire Transfer</option>
+            <option value="cash">Cash</option>
+            <option value="check">Check</option>
+            <option value="card">Credit Card</option>
+            <option value="paypal">PayPal</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label class="field-label">Notes</label><input class="field" id="pur-notes" type="text" placeholder="Optional notes"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('purchase-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePurchase()">Save Purchase</button>
+    </div>
+  </div>
+</div>
+
 <script src="/app.js"></script>
 </body>
 </html>
