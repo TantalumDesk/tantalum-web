@@ -95,6 +95,7 @@ app.use('/api/jobs',        require('./routes/jobs'));
 app.use('/api/notebook',    require('./routes/notebook'));
 app.use('/api/invoices',    require('./routes/invoices'));
 app.use('/api/uploads',     require('./routes/uploads')(upload, UPLOADS_DIR));
+app.use('/api/print',       require('./routes/print'));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
