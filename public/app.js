@@ -99,7 +99,7 @@ function switchView(view) {
   const viewEl = document.getElementById('view-' + view);
   if (viewEl) viewEl.classList.add('active');
 
-  const titles = { dashboard:'Dashboard', inventory:'Inventory', estimates:'Estimates & Jobs', customers:'Customers', notebook:'Notebook', purchases:'Purchase Log', invoices:'Invoices', expenses:'Expenses', accessories:'Accessories', settings:'Settings' };
+  const titles = { dashboard:'Dashboard', inventory:'Inventory', estimates:'Estimates & Jobs', customers:'Customers', notebook:'Notebook', purchases:'Purchase Log', invoices:'Invoices', expenses:'Expenses', accessories:'Accessories', appraisals:'Appraisals', dealers:'Dealers & Contacts', settings:'Settings' };
   document.getElementById('header-title').textContent = titles[view] || view;
 
   // Render the view
@@ -112,6 +112,8 @@ function switchView(view) {
   if (view === 'invoices')    renderInvoiceList();
   if (view === 'expenses')    renderExpenses();
   if (view === 'accessories') renderAccessories();
+  if (view === 'appraisals')  { loadAppraisals().then(renderAppraisals); }
+  if (view === 'dealers')     { loadDealers().then(renderDealers); }
 
   // Header actions
   updateHeaderActions(view);
@@ -124,8 +126,11 @@ function updateHeaderActions(view) {
   if (view === 'inventory') html = `<button class="btn btn-primary btn-sm" onclick="openAddWatch()">+ Add Watch</button>`;
   if (view === 'estimates') html = `<button class="btn btn-primary btn-sm" onclick="openAddEstimate()">+ New Estimate</button>`;
   if (view === 'customers') html = `<button class="btn btn-primary btn-sm" onclick="openAddCustomer()">+ Add Customer</button>`;
-  if (view === 'expenses')  html = `<button class="btn btn-primary btn-sm" onclick="openAddExpense()">+ Add Expense</button>`;
-  if (view === 'purchases') html = `<button class="btn btn-primary btn-sm" onclick="openAddPurchase()">+ Add Purchase</button>`;
+  if (view === 'expenses')   html = `<button class="btn btn-primary btn-sm" onclick="openAddExpense()">+ Add Expense</button>`;
+  if (view === 'purchases')  html = `<button class="btn btn-primary btn-sm" onclick="openAddPurchase()">+ Add Purchase</button>`;
+  if (view === 'invoices')   html = `<button class="btn btn-primary btn-sm" onclick="openAddInvoice()">+ New Invoice</button>`;
+  if (view === 'appraisals') html = `<button class="btn btn-primary btn-sm" onclick="openAddAppraisal()">+ New Appraisal</button>`;
+  if (view === 'dealers')    html = `<button class="btn btn-primary btn-sm" onclick="openAddDealer()">+ Add Contact</button>`;
   acts.innerHTML = html;
   mActs.innerHTML = html;
 }
@@ -286,6 +291,7 @@ function openWatchDetail(id) {
     ${w.notes ? `<div class="card-label" style="margin-bottom:6px">Notes</div><p style="font-size:13.5px;color:var(--text2);margin-bottom:16px;line-height:1.5">${escHtml(w.notes)}</p>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary btn-sm" onclick="openEditWatch('${w.id}')">✏️ Edit</button>
+      <button class="btn btn-secondary btn-sm" onclick="openServiceLog('${w.id}')">🔧 Service Log</button>
       <button class="btn btn-danger btn-sm" onclick="deleteWatch('${w.id}')">🗑 Delete</button>
     </div>`;
   openModal('watch-modal-overlay');
@@ -830,3 +836,291 @@ async function signOut() {
 
 // ── Start ─────────────────────────────────────────────────────────────────
 init();
+
+// ── Outgoing Invoices ─────────────────────────────────────────────────────
+let invLines = [];
+let editingInvId = null;
+
+function renderInvoiceList() {
+  const el = document.getElementById('invoices-list');
+  const total = outgoingInvoices.reduce((s, i) => s + (i.total||0), 0);
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">Total: <strong style="color:var(--gold2)">${fmt(total)}</strong></span>
+      <button class="btn btn-primary btn-sm" onclick="openAddInvoice()">+ New Invoice</button>
+    </div>` +
+    (outgoingInvoices.length ? outgoingInvoices.map(inv => `
+    <div class="list-item" onclick="openEditInvoice('${inv.id||''}')">
+      <div class="list-item-body">
+        <div class="list-item-title">Invoice #${inv.number||''} · ${escHtml(inv.toName||'')}</div>
+        <div class="list-item-sub">${escHtml(inv.date||'')}</div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-value">${fmt(inv.total)}</div>
+        <div>${statusBadge(inv.status==='paid'?'Paid':inv.status==='sent'?'Sent':'Draft', inv.status==='paid'?'green':inv.status==='sent'?'blue':'gray')}</div>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">🧾</div><div class="empty-state-text">No invoices yet</div></div>');
+}
+
+function openAddInvoice() {
+  editingInvId = null;
+  invLines = [];
+  const nextNum = (outgoingInvoices.reduce((m, i) => Math.max(m, i.number||0), 1100)) + 1;
+  document.getElementById('inv-number').value = nextNum;
+  document.getElementById('inv-date').value = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  ['inv-to-name','inv-to-email','inv-to-phone','inv-to-address','inv-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('inv-status').value = 'sent';
+  renderInvLines();
+  openModal('invoice-modal-overlay');
+}
+
+function openEditInvoice(id) {
+  const inv = outgoingInvoices.find(x => x.id === id);
+  if (!inv) return;
+  editingInvId = id;
+  invLines = (inv.lines||[]).map(l => ({ desc: l.desc||'', qty: l.qty||1, price: l.price||0 }));
+  const g = (id, v) => { const el = document.getElementById(id); if(el) el.value = v||''; };
+  g('inv-number', inv.number); g('inv-date', inv.date);
+  g('inv-to-name', inv.toName); g('inv-to-email', inv.toEmail);
+  g('inv-to-phone', inv.toPhone); g('inv-to-address', inv.toAddress);
+  g('inv-notes', inv.notes); g('inv-status', inv.status||'sent');
+  renderInvLines();
+  document.getElementById('invoice-modal-title').textContent = `Invoice #${inv.number}`;
+  openModal('invoice-modal-overlay');
+}
+
+function addInvoiceLine() {
+  invLines.push({ desc: '', qty: 1, price: 0 });
+  renderInvLines();
+}
+
+function renderInvLines() {
+  const el = document.getElementById('inv-lines');
+  if (!invLines.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px 0">No line items yet</div>';
+    updateInvTotal();
+    return;
+  }
+  el.innerHTML = invLines.map((l, i) => `
+    <div style="display:grid;grid-template-columns:1fr 60px 90px 32px;gap:8px;margin-bottom:8px;align-items:center">
+      <input class="field" placeholder="Description" value="${escHtml(l.desc)}" oninput="invLines[${i}].desc=this.value" style="font-size:13px"/>
+      <input class="field" type="number" placeholder="Qty" value="${l.qty}" oninput="invLines[${i}].qty=parseInt(this.value)||1;updateInvTotal()" style="font-size:13px"/>
+      <input class="field" type="number" placeholder="Price" value="${l.price||''}" oninput="invLines[${i}].price=parseFloat(this.value)||0;updateInvTotal()" style="font-size:13px"/>
+      <button class="btn-icon" onclick="invLines.splice(${i},1);renderInvLines()" style="font-size:16px">×</button>
+    </div>`).join('');
+  updateInvTotal();
+}
+
+function updateInvTotal() {
+  const sub = invLines.reduce((s, l) => s + (l.qty||1) * (l.price||0), 0);
+  const el = document.getElementById('inv-subtotal');
+  const tel = document.getElementById('inv-total');
+  if (el) el.textContent = fmt(sub);
+  if (tel) tel.textContent = fmt(sub);
+}
+
+async function saveInvoice() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const sub = invLines.reduce((s, l) => s + (l.qty||1) * (l.price||0), 0);
+  const inv = {
+    id: editingInvId || genId(),
+    number: parseInt(g('inv-number'))||1101,
+    date: g('inv-date'), toName: g('inv-to-name'),
+    toEmail: g('inv-to-email'), toPhone: g('inv-to-phone'),
+    toAddress: g('inv-to-address'),
+    lines: invLines.map(l => ({ desc: l.desc, qty: l.qty||1, price: l.price||0 })),
+    subtotal: sub, taxRate: 0, taxAmt: 0, total: sub,
+    notes: g('inv-notes'), status: g('inv-status'),
+    nextNumber: parseInt(g('inv-number')) + 1,
+    createdAt: new Date().toISOString(),
+  };
+  await POST('/invoices/outgoing', inv);
+  await loadInvoiceData();
+  closeModal('invoice-modal-overlay');
+  renderInvoiceList();
+  showToast('Invoice saved');
+}
+
+// ── Appraisals ────────────────────────────────────────────────────────────
+let appraisals = [];
+
+async function loadAppraisals() {
+  appraisals = await GET('/invoices/appraisals') || [];
+}
+
+function renderAppraisals() {
+  const el = document.getElementById('appraisals-list');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">${appraisals.length} appraisal${appraisals.length!==1?'s':''}</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddAppraisal()">+ New Appraisal</button>
+    </div>` +
+    (appraisals.length ? appraisals.map(a => `
+    <div class="list-item">
+      <div class="list-item-body">
+        <div class="list-item-title">${escHtml(a.brand||'')} ${escHtml(a.model||'')} — ${escHtml(a.customer||'')}</div>
+        <div class="list-item-sub">${escHtml(a.type||'')} · ${escHtml(a.date||'')}</div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-value">${fmt(a.value)}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="deleteAppraisal('${a.id}',event)">🗑</button>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-text">No appraisals yet</div></div>');
+}
+
+function openAddAppraisal() {
+  ['apr-customer','apr-brand','apr-model','apr-ref','apr-serial','apr-condition','apr-value','apr-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const d = document.getElementById('apr-date');
+  if (d) d.value = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  openModal('appraisal-modal-overlay');
+}
+
+async function saveAppraisal() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const a = { id: genId(), customer: g('apr-customer'), date: g('apr-date'), type: g('apr-type'), brand: g('apr-brand'), model: g('apr-model'), ref: g('apr-ref'), serial: g('apr-serial'), condition: g('apr-condition'), value: parseFloat(g('apr-value'))||0, notes: g('apr-notes'), createdAt: new Date().toISOString() };
+  await POST('/invoices/appraisals', a);
+  await loadAppraisals();
+  closeModal('appraisal-modal-overlay');
+  renderAppraisals();
+  showToast('Appraisal saved');
+}
+
+async function deleteAppraisal(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this appraisal?')) return;
+  await DEL('/invoices/appraisals/' + id);
+  await loadAppraisals();
+  renderAppraisals();
+  showToast('Appraisal deleted');
+}
+
+// ── Dealers & Contacts ────────────────────────────────────────────────────
+let dealers = [];
+let editingDealerId = null;
+
+async function loadDealers() {
+  dealers = await GET('/invoices/dealers') || [];
+}
+
+function renderDealers() {
+  const el = document.getElementById('dealers-list');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:var(--text2)">${dealers.length} contact${dealers.length!==1?'s':''}</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddDealer()">+ Add Contact</button>
+    </div>` +
+    (dealers.length ? dealers.map(d => `
+    <div class="list-item" onclick="openEditDealer('${d.id}')">
+      <div class="list-item-icon">🤝</div>
+      <div class="list-item-body">
+        <div class="list-item-title">${escHtml(d.name||'')}</div>
+        <div class="list-item-sub">${escHtml(d.type||'')}${d.location?' · '+escHtml(d.location):''}${d.phone?' · '+escHtml(d.phone):''}</div>
+      </div>
+      <div class="list-item-right">
+        <button class="btn btn-ghost btn-sm" onclick="deleteDealer('${d.id}',event)">🗑</button>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><div class="empty-state-icon">🤝</div><div class="empty-state-text">No contacts yet</div></div>');
+}
+
+function openAddDealer() {
+  editingDealerId = null;
+  ['dl-name','dl-phone','dl-email','dl-location','dl-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('dealer-modal-title').textContent = 'Add Contact';
+  openModal('dealer-modal-overlay');
+}
+
+function openEditDealer(id) {
+  editingDealerId = id;
+  const d = dealers.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('dealer-modal-title').textContent = 'Edit Contact';
+  const g = (id, v) => { const el = document.getElementById(id); if(el) el.value = v||''; };
+  g('dl-name', d.name); g('dl-phone', d.phone); g('dl-email', d.email);
+  g('dl-location', d.location); g('dl-notes', d.notes);
+  const t = document.getElementById('dl-type'); if(t) t.value = d.type||'Dealer';
+  openModal('dealer-modal-overlay');
+}
+
+async function saveDealer() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const d = { id: editingDealerId || genId(), name: g('dl-name'), phone: g('dl-phone'), email: g('dl-email'), type: g('dl-type'), location: g('dl-location'), notes: g('dl-notes'), createdAt: new Date().toISOString() };
+  await POST('/invoices/dealers', d);
+  await loadDealers();
+  closeModal('dealer-modal-overlay');
+  renderDealers();
+  showToast('Contact saved');
+}
+
+async function deleteDealer(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this contact?')) return;
+  await DEL('/invoices/dealers/' + id);
+  await loadDealers();
+  renderDealers();
+  showToast('Contact deleted');
+}
+
+// ── Service Log ───────────────────────────────────────────────────────────
+let currentServiceWatchId = null;
+
+function openServiceLog(watchId) {
+  currentServiceWatchId = watchId;
+  const w = watches.find(x => x.id === watchId);
+  if (!w) return;
+  const log = w.serviceLog || [];
+  document.getElementById('watch-modal-title').textContent = `${w.brand||''} ${w.model||''} — Service Log`;
+  document.getElementById('watch-modal-body').innerHTML = `
+    <div style="margin-bottom:12px">
+      <button class="btn btn-primary btn-sm" onclick="openAddServiceEntry('${watchId}')">+ Add Entry</button>
+    </div>
+    ${log.length ? log.map((s, i) => `
+      <div class="card" style="margin-bottom:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:600;font-size:13.5px">${escHtml(s.type||'')}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px">${escHtml(s.date||'')} · ${escHtml(s.by||'')}${s.cost?' · '+fmt(s.cost):''}</div>
+            ${s.notes ? `<div style="font-size:12.5px;color:var(--text2);margin-top:4px">${escHtml(s.notes)}</div>` : ''}
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="deleteServiceEntry('${watchId}',${i})">🗑</button>
+        </div>
+      </div>`).join('') : '<div class="empty-state" style="padding:24px"><div class="empty-state-text">No service history yet</div></div>'}
+    <hr class="divider"/>
+    <button class="btn btn-secondary btn-sm" onclick="openWatchDetail('${watchId}')">← Back to Details</button>`;
+  openModal('watch-modal-overlay');
+}
+
+function openAddServiceEntry(watchId) {
+  currentServiceWatchId = watchId;
+  ['svc-by','svc-cost','svc-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const d = document.getElementById('svc-date');
+  if (d) d.value = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const t = document.getElementById('svc-type'); if(t) t.value = 'Full Service';
+  openModal('service-modal-overlay');
+}
+
+async function saveServiceEntry() {
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const entry = { type: g('svc-type'), date: g('svc-date'), by: g('svc-by'), cost: parseFloat(g('svc-cost'))||0, notes: g('svc-notes') };
+  const w = watches.find(x => x.id === currentServiceWatchId);
+  if (!w) return;
+  if (!w.serviceLog) w.serviceLog = [];
+  w.serviceLog.unshift(entry);
+  await POST('/watches', w);
+  await loadWatches();
+  closeModal('service-modal-overlay');
+  openServiceLog(currentServiceWatchId);
+  showToast('Service entry added');
+}
+
+async function deleteServiceEntry(watchId, index) {
+  if (!confirm('Delete this service entry?')) return;
+  const w = watches.find(x => x.id === watchId);
+  if (!w || !w.serviceLog) return;
+  w.serviceLog.splice(index, 1);
+  await POST('/watches', w);
+  await loadWatches();
+  openServiceLog(watchId);
+  showToast('Entry deleted');
+}

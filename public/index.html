@@ -52,6 +52,9 @@
       <div class="nav-item" data-view="invoices"><span class="nav-icon">🧾</span>Invoices</div>
       <div class="nav-item" data-view="expenses"><span class="nav-icon">💳</span>Expenses</div>
       <div class="nav-item" data-view="notebook"><span class="nav-icon">📓</span>Notebook</div>
+      <div class="nav-section">More</div>
+      <div class="nav-item" data-view="appraisals"><span class="nav-icon">📄</span>Appraisals</div>
+      <div class="nav-item" data-view="dealers"><span class="nav-icon">🤝</span>Dealers & Contacts</div>
       <div class="nav-section">Admin</div>
       <div class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span>Settings</div>
     </div>
@@ -166,6 +169,16 @@
       <!-- ACCESSORIES -->
       <div class="view" id="view-accessories">
         <div class="card" style="padding:0" id="accessories-list"></div>
+      </div>
+
+      <!-- APPRAISALS -->
+      <div class="view" id="view-appraisals">
+        <div class="card" style="padding:0" id="appraisals-list"></div>
+      </div>
+
+      <!-- DEALERS -->
+      <div class="view" id="view-dealers">
+        <div class="card" style="padding:0" id="dealers-list"></div>
       </div>
 
       <!-- SETTINGS -->
@@ -418,6 +431,151 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('purchase-modal-overlay')">Cancel</button>
       <button class="btn btn-primary" onclick="savePurchase()">Save Purchase</button>
+    </div>
+  </div>
+</div>
+
+<!-- OUTGOING INVOICE MODAL -->
+<div class="modal-overlay" id="invoice-modal-overlay">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title" id="invoice-modal-title">New Invoice</span>
+      <button class="modal-close" onclick="closeModal('invoice-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row two-col">
+        <div><label class="field-label">Invoice #</label><input class="field" id="inv-number" type="number"/></div>
+        <div><label class="field-label">Date</label><input class="field" id="inv-date" type="text"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Bill To (Name)</label><input class="field" id="inv-to-name" type="text" placeholder="Customer name"/></div>
+        <div><label class="field-label">Email</label><input class="field" id="inv-to-email" type="email"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Phone</label><input class="field" id="inv-to-phone" type="tel"/></div>
+        <div><label class="field-label">Address</label><input class="field" id="inv-to-address" type="text"/></div>
+      </div>
+      <hr class="divider"/>
+      <div class="section-header" style="margin-bottom:10px">
+        <span class="section-title">Line Items</span>
+        <button class="btn btn-sm btn-secondary" onclick="addInvoiceLine()">+ Add Line</button>
+      </div>
+      <div id="inv-lines"></div>
+      <div style="margin-top:12px;text-align:right">
+        <div style="font-size:13px;color:var(--text2)">Subtotal: <span id="inv-subtotal">$0</span></div>
+        <div style="font-size:15px;font-weight:700;color:var(--gold2);margin-top:4px">Total: <span id="inv-total">$0</span></div>
+      </div>
+      <hr class="divider"/>
+      <div class="form-row"><label class="field-label">Notes / Payment Terms</label><textarea class="field" id="inv-notes" rows="2" placeholder="e.g. Payment due upon receipt."></textarea></div>
+      <div class="form-row">
+        <label class="field-label">Status</label>
+        <select class="field" id="inv-status" style="max-width:180px">
+          <option value="sent">Sent</option>
+          <option value="paid">Paid</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('invoice-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPRAISAL MODAL -->
+<div class="modal-overlay" id="appraisal-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Appraisal</span>
+      <button class="modal-close" onclick="closeModal('appraisal-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="field-label">Customer Name</label><input class="field" id="apr-customer" type="text"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Date</label><input class="field" id="apr-date" type="text"/></div>
+        <div><label class="field-label">Appraisal Type</label>
+          <select class="field" id="apr-type">
+            <option>Insurance</option><option>Estate</option><option>Fair Market Value</option><option>Retail Replacement</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Brand</label><input class="field" id="apr-brand" type="text"/></div>
+        <div><label class="field-label">Model</label><input class="field" id="apr-model" type="text"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Ref #</label><input class="field" id="apr-ref" type="text"/></div>
+        <div><label class="field-label">Serial #</label><input class="field" id="apr-serial" type="text"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Condition</label><input class="field" id="apr-condition" type="text"/></div>
+        <div><label class="field-label">Appraised Value</label><input class="field" id="apr-value" type="number" step="0.01"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Notes</label><textarea class="field" id="apr-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('appraisal-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAppraisal()">Save Appraisal</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEALER MODAL -->
+<div class="modal-overlay" id="dealer-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="dealer-modal-title">Add Contact</span>
+      <button class="modal-close" onclick="closeModal('dealer-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="field-label">Name / Company</label><input class="field" id="dl-name" type="text"/></div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Phone</label><input class="field" id="dl-phone" type="tel"/></div>
+        <div><label class="field-label">Email</label><input class="field" id="dl-email" type="email"/></div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Type</label>
+          <select class="field" id="dl-type">
+            <option>Dealer</option><option>Supplier</option><option>Auction House</option><option>Watch Show</option><option>Private Collector</option><option>Other</option>
+          </select>
+        </div>
+        <div><label class="field-label">Location</label><input class="field" id="dl-location" type="text" placeholder="City, State"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Notes</label><textarea class="field" id="dl-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('dealer-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDealer()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE LOG MODAL -->
+<div class="modal-overlay" id="service-modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Service Entry</span>
+      <button class="modal-close" onclick="closeModal('service-modal-overlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row two-col">
+        <div><label class="field-label">Date</label><input class="field" id="svc-date" type="text"/></div>
+        <div><label class="field-label">Type</label>
+          <select class="field" id="svc-type">
+            <option>Full Service</option><option>Battery</option><option>Crystal</option><option>Crown & Stem</option><option>Pressure Test</option><option>Polish</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div><label class="field-label">Performed By</label><input class="field" id="svc-by" type="text" placeholder="e.g. In-house"/></div>
+        <div><label class="field-label">Cost</label><input class="field" id="svc-cost" type="number" step="0.01"/></div>
+      </div>
+      <div class="form-row"><label class="field-label">Notes</label><textarea class="field" id="svc-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('service-modal-overlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveServiceEntry()">Save Entry</button>
     </div>
   </div>
 </div>
